@@ -84,7 +84,7 @@ Batch message consumers receive a list of messages and work as part of the `:bro
           # optional
           async_message_ack: false, # see "async message acknowledgement" below
           start_with_earliest_message: true # default false
-        ],
+        ]
       ```
 
     The `start_with_earliest_message` field controls where your consumer group starts when it starts for the very first time. Once offsets have been committed to Kafka then they will supercede this option. If omitted then your consumer group will start processing from the most recent messages in the topic instead of consuming all available messages.
@@ -125,8 +125,8 @@ Batch message consumers receive a list of messages and work as part of the `:bro
       The module's `handle_messages/1` function _must_ return `:ok` or Kaffe will throw an error. The Kaffe consumer will block until your `handle_messages/1` function returns `:ok`.
 
       ```elixir
-      defmodule MessageProcessor
-        def handle_messages(messages) do
+      defmodule MessageProcessor do
+        def handle_messages(topic, messages) do
           for %{key: key, value: value} = _message <- messages do
             IO.inspect message
             IO.puts "#{key}: #{value}"
@@ -179,7 +179,7 @@ Batch message consumers receive a list of messages and work as part of the `:bro
           offset_reset_policy: :reset_to_latest,
           max_bytes: 500_000,
           worker_allocation_strategy: :worker_per_topic_partition,
-        ],
+        ]
       ```
 
   3. Add `Kaffe.GroupMemberSupervisor` as a supervisor in your
