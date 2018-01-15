@@ -34,12 +34,10 @@ defmodule Kaffe.Worker do
 
     new_handler_state_2 = case apply(message_handler, :handle_messages, [messages, handler_state]) do
       {:ok, new_handler_state}->
-        offset = Enum.reduce(messages, 0, &max(&1.offset, &2))
-        subscriber().ack_messages(subscriber_pid, topic, partition, generation_id, offset)
+        subscriber().ack_messages(subscriber_pid, topic, partition, generation_id, List.last(messages).offset)
         new_handler_state
       {:ok, new_handler_state, :no_ack} ->
-        offset = Enum.reduce(messages, 0, &max(&1.offset, &2))
-        subscriber().ack_messages(subscriber_pid, topic, partition, generation_id, offset, false)
+        subscriber().ack_messages(subscriber_pid, topic, partition, generation_id, List.last(messages).offset, false)
         new_handler_state
       {:ok, new_handler_state, offset} ->
         subscriber().ack_messages(subscriber_pid, topic, partition, generation_id, offset)
