@@ -31,6 +31,16 @@ defmodule Kaffe.GroupManager do
     GenServer.call(name(), {:subscribe_topics, topics})
   end
 
+  # to manually unsubscribe from existing topics (not from config), at any point in time
+  def unsubscribe_topics(topics) do
+    GenServer.call(name(), {:unsubscribe_topics, topics})
+  end
+
+  # returns the current subscribed topics
+  def get_topics() do
+    GenServer.call(name(), {:get_topics})
+  end
+
   ## Callbacks
 
   def init([supervisor_pid]) do
@@ -87,6 +97,25 @@ defmodule Kaffe.GroupManager do
       end
     end)
     {:reply, {:ok, subscribed_topics}, %State{state|topics: subscribed_topics ++ topics} }
+  end
+
+  def handle_call({:unsubscribe_topics, old_topics}, _from, %State{topics: topics} = state) do
+    unsubscribed_topics = Enum.flat_map(old_topics, fn(old_topic) ->
+      if ! Enum.member?(topics, old_topic) do
+        Logger.info "Not unsubscribing from #{old_topic}, already unsubscribed"
+        []
+      else
+        :ok = GroupMemberSupervisor.stop_group_member(state.supervisor_pid, state.subscriber_name, old_topic)
+        Logger.debug "Unsubscribed from topic: #{old_topic}"
+        [old_topic]
+      end
+    end)
+    {:reply, {:ok, unsubscribed_topics}, %State{state|topics: topics -- unsubscribed_topics } }
+  end
+
+
+  def handle_call({:get_topics}, _from, %State{topics: topics} = state) do
+    {:reply, {:ok, topics}, state}
   end
 
   defp kafka do
