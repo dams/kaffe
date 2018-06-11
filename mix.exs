@@ -25,8 +25,7 @@ defmodule Kaffe.Mixfile do
 
   defp deps do
     [
-#      {:brod, "~> 3.0"},
-      {:brod, git: "git@github.com:dams/brod.git"}
+      {:brod, "~> 3.0"},
       {:ex_doc, "~> 0.14", only: :dev, runtime: false},
     ]
   end
