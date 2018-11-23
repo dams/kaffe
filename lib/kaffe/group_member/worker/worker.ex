@@ -7,7 +7,8 @@ defmodule Kaffe.Worker do
   handler. It is responsible for any error handling. The message handler
   must define a `init_handler/0` function that should return `{:ok, state}`, and
   a `handle_messages` function (*note* the pluralization!)
-  to accept a list of messages and a state, and returns `{:ok, state}`.
+  to accept a list of messages and a state, and returns:
+  `{:ok, state}`, `{:ok, state, offset_to_ack}`, or `{:ok, state, offset_to_ack, offset_to_query}`.
 
   The result of `handle_messages` is sent back to the subscriber.
   """
@@ -34,13 +35,18 @@ defmodule Kaffe.Worker do
 
     new_handler_state_2 = case apply(message_handler, :handle_messages, [messages, handler_state]) do
       {:ok, new_handler_state}->
-        subscriber().ack_messages(subscriber_pid, topic, partition, generation_id, List.last(messages).offset)
+        last_offset = List.last(messages).offset
+        subscriber().ack_messages(subscriber_pid, topic, partition, generation_id, last_offset, last_offset, true)
         new_handler_state
       {:ok, new_handler_state, :no_ack} ->
-        subscriber().ack_messages(subscriber_pid, topic, partition, generation_id, List.last(messages).offset, false)
+        last_offset = List.last(messages).offset
+        subscriber().ack_messages(subscriber_pid, topic, partition, generation_id, last_offset, last_offset, false)
         new_handler_state
       {:ok, new_handler_state, offset} ->
-        subscriber().ack_messages(subscriber_pid, topic, partition, generation_id, offset)
+        subscriber().ack_messages(subscriber_pid, topic, partition, generation_id, offset, offset, true)
+        new_handler_state
+      {:ok, new_handler_state, offset_to_ack, offset_to_query} ->
+        subscriber().ack_messages(subscriber_pid, topic, partition, generation_id, offset_to_ack, offset_to_query, true)
         new_handler_state
     end
 

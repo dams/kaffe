@@ -46,8 +46,8 @@ defmodule Kaffe.Subscriber do
     GenServer.stop(subscriber_pid)
   end
 
-  def ack_messages(subscriber_pid, topic, partition, generation_id, offset, ack? \\ true) do
-    GenServer.cast(subscriber_pid, {:ack_messages, topic, partition, generation_id, offset, ack?})
+  def ack_messages(subscriber_pid, topic, partition, generation_id, offset_to_ack, offset_to_query, ack?) do
+    GenServer.cast(subscriber_pid, {:ack_messages, topic, partition, generation_id, offset_to_ack, offset_to_query, ack?})
   end
 
   def init([subscriber_name, group_coordinator_pid, worker_pid,
@@ -100,9 +100,9 @@ defmodule Kaffe.Subscriber do
     {:noreply, state}
   end
 
-  def handle_cast({:ack_messages, topic, partition, generation_id, offset, ack?}, state) do
+  def handle_cast({:ack_messages, topic, partition, generation_id, offset_to_ack, offset_to_query, ack?}, state) do
 
-    Logger.debug "Ready to ack messages of #{state.topic} / #{state.partition} / #{generation_id} / #{ack?} at offset: #{offset}"
+    Logger.debug "Ready to ack messages of #{state.topic} / #{state.partition} / #{generation_id} / #{ack?} at offset: #{offset_to_ack}"
 
     # Is this the ack we're looking for?
     ^topic = state.topic
@@ -112,10 +112,10 @@ defmodule Kaffe.Subscriber do
     # Update the offsets in the group
     if ack? do
       :ok = group_coordinator().ack(state.group_coordinator_pid, state.gen_id,
-        state.topic, state.partition, offset)
+        state.topic, state.partition, offset_to_ack)
     end
     # Request more messages from the consumer
-    :ok = kafka().consume_ack(state.subscriber_pid, offset)
+    :ok = kafka().consume_ack(state.subscriber_pid, offset_to_query)
 
     {:noreply, state}
   end
